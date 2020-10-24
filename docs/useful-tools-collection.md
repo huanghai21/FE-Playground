@@ -11,3 +11,5 @@
 [Iconfont](https://www.iconfont.cn/): 阿里巴巴矢量图标库
 
 [Babel online REPL](https://babeljs.io/repl): 通过babel实时转换代码的交互界面(REPL: Read Eval Print Loop)
+
+[jsdelivr](https://www.jsdelivr.com/): A free CDN for Open Source fast, reliable, and automated
