@@ -2,6 +2,7 @@ import { useRef, useCallback } from 'react';
 
 /**
  * 自定义Hook: 处理类别滑动切换
+ * @param {Function} ref - 滑动回调函数，接受方向参数 ('left' | 'right' | 'up' | 'down')
  * @param {Function} onSwipe - 滑动回调函数，接受方向参数 ('left' | 'right' | 'up' | 'down')
  * @param {Object} options - 配置选项
  * @param {number} options.threshold - 触发滑动的最小距离阈值，默认为50px
@@ -10,117 +11,189 @@ import { useRef, useCallback } from 'react';
  * @param {boolean} options.enableHorizontal - 是否启用水平滑动，默认为true
  * @returns {Object} 包含触摸事件处理函数的对象
  */
-const useSwipeCategory = (onSwipe, options = {}) => {
-  const { 
-    threshold = 50, 
+const useSwipeCategory = (ref, onSwipe, options = {}) => {
+  const {
+    threshold = 50,
     preventScroll = true,
     enableVertical = true,
-    enableHorizontal = true 
+    enableHorizontal = true
   } = options;
+
+  // 触摸状态引用
+  const touchState = useRef({
+    startX: 0,
+    startY: 0,
+    currentX: 0,
+    currentY: 0,
+    id: Date.now() // 用于识别不同的滑动实例
+  }).current;
+
+  /**
+   * 检测滚动容器是否达到边缘（顶部或底部）
+   * 当滚动到顶部或底部时调用callback函数并传递相应的位置信息
+   * @returns {string|null} 返回边缘位置('top'|'bottom')或null（未到达边缘）
+   */
+  const onEdge = () => {
+    if (!ref.current) return null;
   
-  const touchStartX = useRef(0);
-  const touchStartY = useRef(0);
-  const touchCurrentX = useRef(0);
-  const touchCurrentY = useRef(0);
-  const swipeId = useRef(Date.now()).current; // 用于识别不同的滑动实例
+    const { scrollTop, scrollHeight, clientHeight } = ref.current;
+    const tolerance = 1;
   
+    if (scrollTop <= tolerance) {
+      return 'top'
+    } else if (scrollHeight - (scrollTop + clientHeight) <= tolerance) {
+      return 'bottom'
+    } else {
+      return null
+    }
+  };
+
+  // 记录日志
+  const logSwipe = (action, message) => {
+    console.log(`[SwipeLog-${touchState.id}] ${action} - ${message}`);
+  };
+
+  // 重置触摸状态
+  const resetTouchState = useCallback(() => {
+    touchState.startX = 0;
+    touchState.startY = 0;
+    touchState.currentX = 0;
+    touchState.currentY = 0;
+    logSwipe('触摸结束', '触摸状态已重置');
+  }, [touchState]);
+
+  // 计算滑动距离
+  const getSwipeDistance = useCallback(() => {
+    return {
+      x: touchState.startX - touchState.currentX,
+      y: touchState.startY - touchState.currentY
+    };
+  }, [touchState]);
+
+  // 判断滑动方向
+  const determineSwipeDirection = useCallback((diffX, diffY) => {
+    const isHorizontal = Math.abs(diffX) > Math.abs(diffY);
+
+    if (isHorizontal) {
+      return {
+        isHorizontal: true,
+        direction: diffX > 0 ? 'left' : 'right'
+      };
+    } else {
+      return {
+        isHorizontal: false,
+        direction: diffY > 0 ? 'up' : 'down'
+      };
+    }
+  }, []);
+
+  // 检查滑动是否有效
+  const isValidSwipe = useCallback((diffX, diffY, swipeType) => {
+    const isHorizontal = Math.abs(diffX) > Math.abs(diffY);
+
+    if (isHorizontal && swipeType === 'horizontal') {
+      return enableHorizontal && Math.abs(diffX) > threshold;
+    } else if (!isHorizontal && swipeType === 'vertical') {
+      return enableVertical && Math.abs(diffY) > threshold;
+    }
+
+    return false;
+  }, [enableHorizontal, enableVertical, threshold]);
+
   // 处理触摸开始事件
   const handleTouchStart = useCallback((e) => {
-    touchStartX.current = e.touches[0].clientX;
-    touchStartY.current = e.touches[0].clientY;
-    // 初始化当前位置与起始位置相同
-    touchCurrentX.current = touchStartX.current;
-    touchCurrentY.current = touchStartY.current;
-    console.log(`[SwipeLog-${swipeId}] 触摸开始 - 位置: X=${touchStartX.current}, Y=${touchStartY.current}`);
-  }, [swipeId]);
-  
-  // 处理触摸移动事件 - 只记录位置，不触发切换
+    const edge = onEdge()
+    if (!edge) {
+      return
+    }
+
+    touchState.startX = e.touches[0].clientX;
+    touchState.startY = e.touches[0].clientY;
+    touchState.currentX = touchState.startX;
+    touchState.currentY = touchState.startY;
+
+    logSwipe('触摸开始', `位置: X=${touchState.startX}, Y=${touchState.startY}`);
+  }, [touchState]);
+
+  // 处理触摸移动事件
   const handleTouchMove = useCallback((e) => {
-    if (!touchStartX.current) {
-      console.log(`[SwipeLog-${swipeId}] 触摸移动 - 跳过（初始触摸点未设置）`);
+    if (!touchState.startX) {
+      logSwipe('触摸移动', '跳过（初始触摸点未设置）');
       return;
     }
-    
+
     // 更新当前触摸位置
-    touchCurrentX.current = e.touches[0].clientX;
-    touchCurrentY.current = e.touches[0].clientY;
-    
-    const diffX = touchStartX.current - touchCurrentX.current;
-    const diffY = touchStartY.current - touchCurrentY.current;
-    
-    console.log(`[SwipeLog-${swipeId}] 触摸移动 - 当前位置: X=${touchCurrentX.current}, Y=${touchCurrentY.current}`);
-    console.log(`[SwipeLog-${swipeId}] 触摸移动 - 水平移动: ${diffX}px, 垂直移动: ${diffY}px`);
-    
-    // 判断是水平滑动还是垂直滑动
-    const isHorizontalSwipe = Math.abs(diffX) > Math.abs(diffY);
-    
-    // 如果是有效的滑动手势且需要阻止页面滚动
-    if ((isHorizontalSwipe && enableHorizontal && Math.abs(diffX) > threshold) || 
-        (!isHorizontalSwipe && enableVertical && Math.abs(diffY) > threshold)) {
-      if (preventScroll) {
+    touchState.currentX = e.touches[0].clientX;
+    touchState.currentY = e.touches[0].clientY;
+
+    const { x: diffX, y: diffY } = getSwipeDistance();
+
+    logSwipe('触摸移动', `当前位置: X=${touchState.currentX}, Y=${touchState.currentY}`);
+    logSwipe('触摸移动', `水平移动: ${diffX}px, 垂直移动: ${diffY}px`);
+
+    // 阻止页面滚动
+    if (preventScroll) {
+      const horizontalValid = isValidSwipe(diffX, diffY, 'horizontal');
+      const verticalValid = isValidSwipe(diffX, diffY, 'vertical');
+
+      if (horizontalValid || verticalValid) {
         e.preventDefault();
-        console.log(`[SwipeLog-${swipeId}] 触摸移动 - 阻止默认滚动行为`);
+        logSwipe('触摸移动', '阻止默认滚动行为');
       }
     }
-  }, [threshold, preventScroll, enableHorizontal, enableVertical, swipeId]);
-  
-  // 处理触摸结束事件，在这里执行切换逻辑
+  }, [touchState, preventScroll, getSwipeDistance, isValidSwipe]);
+
+  // 处理触摸结束事件
   const handleTouchEnd = useCallback(() => {
-    console.log(`[SwipeLog-${swipeId}] 触摸结束 - 起始位置: X=${touchStartX.current}, Y=${touchStartY.current}`);
-    console.log(`[SwipeLog-${swipeId}] 触摸结束 - 最终位置: X=${touchCurrentX.current}, Y=${touchCurrentY.current}`);
-    
+    logSwipe('触摸结束', `起始位置: X=${touchState.startX}, Y=${touchState.startY}`);
+    logSwipe('触摸结束', `最终位置: X=${touchState.currentX}, Y=${touchState.currentY}`);
+
     // 确保有起始点和回调函数
-    if (!touchStartX.current || !onSwipe) {
-      console.log(`[SwipeLog-${swipeId}] 触摸结束 - 跳过（初始触摸点未设置或没有回调）`);
-      touchStartX.current = 0;
-      touchStartY.current = 0;
-      touchCurrentX.current = 0;
-      touchCurrentY.current = 0;
+    if (!touchState.startX || !onSwipe) {
+      logSwipe('触摸结束', '跳过（初始触摸点未设置或没有回调）');
+      resetTouchState();
       return;
     }
-    
-    const diffX = touchStartX.current - touchCurrentX.current;
-    const diffY = touchStartY.current - touchCurrentY.current;
-    
-    // 判断是水平滑动还是垂直滑动
-    const isHorizontalSwipe = Math.abs(diffX) > Math.abs(diffY);
-    
-    // 水平滑动处理
-    if (isHorizontalSwipe && enableHorizontal) {
-      console.log(`[SwipeLog-${swipeId}] 触摸结束 - 水平滑动优先`);
-      
-      if (Math.abs(diffX) > threshold) {
-        const direction = diffX > 0 ? 'left' : 'right';
-        console.log(`[SwipeLog-${swipeId}] 触摸结束 - 触发滑动! 方向: ${direction}, 距离: ${Math.abs(diffX)}px > 阈值(${threshold}px)`);
-        
-        onSwipe(direction);
-      } else {
-        console.log(`[SwipeLog-${swipeId}] 触摸结束 - 水平滑动距离不足: ${Math.abs(diffX)}px < 阈值(${threshold}px)`);
-      }
-    } 
-    // 垂直滑动处理
-    else if (!isHorizontalSwipe && enableVertical) {
-      console.log(`[SwipeLog-${swipeId}] 触摸结束 - 垂直滑动优先`);
-      
-      if (Math.abs(diffY) > threshold) {
-        const direction = diffY > 0 ? 'up' : 'down';
-        console.log(`[SwipeLog-${swipeId}] 触摸结束 - 触发滑动! 方向: ${direction}, 距离: ${Math.abs(diffY)}px > 阈值(${threshold}px)`);
-        
-        onSwipe(direction);
-      } else {
-        console.log(`[SwipeLog-${swipeId}] 触摸结束 - 垂直滑动距离不足: ${Math.abs(diffY)}px < 阈值(${threshold}px)`);
-      }
+
+    const { x: diffX, y: diffY } = getSwipeDistance();
+    const { isHorizontal, direction } = determineSwipeDirection(diffX, diffY);
+
+    // 判断是否为有效滑动
+    const isValid = isValidSwipe(
+      diffX,
+      diffY,
+      isHorizontal ? 'horizontal' : 'vertical'
+    );
+
+    // 处理有效滑动
+    if (isValid) {
+      const distance = isHorizontal ? Math.abs(diffX) : Math.abs(diffY);
+      logSwipe('触摸结束', `触发滑动! 方向: ${direction}, 距离: ${distance}px > 阈值(${threshold}px)`);
+      onSwipe(direction);
     } else {
-      console.log(`[SwipeLog-${swipeId}] 触摸结束 - ${isHorizontalSwipe ? '水平' : '垂直'}滑动已禁用，不触发事件`);
+      const swipeType = isHorizontal ? '水平' : '垂直';
+      const enabled = (isHorizontal && enableHorizontal) || (!isHorizontal && enableVertical);
+
+      if (!enabled) {
+        logSwipe('触摸结束', `${swipeType}滑动已禁用，不触发事件`);
+      } else {
+        const distance = isHorizontal ? Math.abs(diffX) : Math.abs(diffY);
+        logSwipe('触摸结束', `${swipeType}滑动距离不足: ${distance}px < 阈值(${threshold}px)`);
+      }
     }
-    
-    // 重置触摸状态
-    touchStartX.current = 0;
-    touchStartY.current = 0;
-    touchCurrentX.current = 0;
-    touchCurrentY.current = 0;
-    console.log(`[SwipeLog-${swipeId}] 触摸结束 - 触摸状态已重置`);
-  }, [onSwipe, threshold, enableHorizontal, enableVertical, swipeId]);
+
+    resetTouchState();
+  }, [
+    touchState,
+    onSwipe,
+    getSwipeDistance,
+    determineSwipeDirection,
+    isValidSwipe,
+    resetTouchState,
+    threshold,
+    enableHorizontal,
+    enableVertical
+  ]);
 
   return {
     handleTouchStart,

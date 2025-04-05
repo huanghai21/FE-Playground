@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import './ContentArea.css';
 import useSwipeCategory from '../hooks/useSwipeCategory';
 
 function ContentArea({ content, onSwipe }) {
+  const contentRef = useRef(null)
   // 使用自定义Hook处理滑动手势
   const { handleTouchStart, handleTouchMove, handleTouchEnd } = useSwipeCategory(onSwipe, {
     threshold: 50,  // 触发滑动的最小距离
@@ -12,7 +13,8 @@ function ContentArea({ content, onSwipe }) {
   });
 
   return (
-    <div 
+    <div
+      ref={contentRef}
       className="content-area"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
