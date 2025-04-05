@@ -111,10 +111,7 @@ const useSwipeCategory = (ref, onSwipe, options = {}) => {
   }, []);
 
   // 检查滑动是否有效
-  const isValidSwipe = useCallback((diffX, diffY, swipeType, edgeType) => {
-    if (edgeType === null) {
-      return false;
-    }
+  const isValidSwipe = useCallback((diffX, diffY, swipeType) => {
     const isHorizontal = Math.abs(diffX) > Math.abs(diffY);
 
     if (isHorizontal && swipeType === 'horizontal') {
@@ -199,13 +196,19 @@ const useSwipeCategory = (ref, onSwipe, options = {}) => {
       diffX,
       diffY,
       isHorizontal ? 'horizontal' : 'vertical',
-      touchState.edgeType
     );
 
+    const matchDirectionAndEdgeType = (direction, edgeType) => {
+      const topToDown = Boolean(edgeType === 'top' && direction === 'down')
+      const bottomToUp = Boolean(edgeType === 'bottom' && direction === 'up')
+      return topToDown || bottomToUp
+    }
+
     // 处理有效滑动
-    if (isValid) {
+    if (isValid && matchDirectionAndEdgeType(direction, touchState.edgeType)) {
       const distance = isHorizontal ? Math.abs(diffX) : Math.abs(diffY);
       logSwipe('触摸结束', `触发滑动! 方向: ${direction}, 距离: ${distance}px > 阈值(${threshold}px)`);
+
       onSwipe(direction);
     } else {
       const swipeType = isHorizontal ? '水平' : '垂直';
