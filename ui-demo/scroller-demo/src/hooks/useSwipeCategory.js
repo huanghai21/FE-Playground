@@ -102,9 +102,10 @@ const useSwipeCategory = (ref, onSwipe, options = {}) => {
 
   // 处理触摸开始事件
   const handleTouchStart = useCallback((e) => {
-    const edge = onEdge()
-    if (!edge) {
-      return
+    const edge = onEdge();
+    if (edge === null) {
+      logSwipe('触摸开始', '跳过（容器未滚动到边缘）');
+      return;
     }
 
     touchState.startX = e.touches[0].clientX;
@@ -112,7 +113,7 @@ const useSwipeCategory = (ref, onSwipe, options = {}) => {
     touchState.currentX = touchState.startX;
     touchState.currentY = touchState.startY;
 
-    logSwipe('触摸开始', `位置: X=${touchState.startX}, Y=${touchState.startY}`);
+    logSwipe('触摸开始', `在${edge}边缘，位置: X=${touchState.startX}, Y=${touchState.startY}`);
   }, [touchState]);
 
   // 处理触摸移动事件
