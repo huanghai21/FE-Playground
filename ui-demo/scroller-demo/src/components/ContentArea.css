@@ -1,6 +1,9 @@
 .content-area {
   flex: 1;
   padding: 30px;
+  overflow-y: auto; /* 内容超出时可滚动 */
+  height: 100vh; /* 设置高度为视口高度 */
+  box-sizing: border-box; /* 确保padding不会影响整体高度 */
 }
 
 h2 {
@@ -13,4 +16,24 @@ h2 {
 p {
   margin-bottom: 15px;
   line-height: 1.6;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .content-area {
+    flex: 1;
+    height: 100vh;
+    padding: 15px;
+    overflow-y: auto;
+  }
+  
+  h2 {
+    margin-bottom: 15px;
+    font-size: 1.3rem;
+  }
+  
+  p {
+    margin-bottom: 12px;
+    font-size: 0.95rem;
+  }
 }
