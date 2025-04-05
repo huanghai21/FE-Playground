@@ -1,0 +1,102 @@
+.category-container {
+  display: flex;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+  /* 启用硬件加速 */
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000;
+}
+
+.category-sidebar {
+  width: 30%;
+  background-color: #f5f5f5;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  will-change: transform;
+}
+
+.category-item {
+  padding: 15px 10px;
+  border-bottom: 1px solid #e0e0e0;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  /* 避免点击高亮 */
+  -webkit-tap-highlight-color: transparent;
+}
+
+.category-item.active {
+  background-color: #1890ff;
+  color: white;
+}
+
+.category-content {
+  width: 70%;
+  height: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  position: relative;
+  /* 优化滚动性能 */
+  contain: strict;
+  will-change: transform;
+}
+
+.content-wrapper {
+  padding: 15px;
+  /* 避免布局抖动 */
+  contain: content;
+}
+
+.content-items {
+  margin-top: 15px;
+  display: grid;
+  gap: 10px;
+}
+
+.content-item {
+  padding: 10px;
+  background-color: #f9f9f9;
+  border-radius: 4px;
+  /* 优化动画性能 */
+  transform: translateZ(0);
+}
+
+.scroll-hint {
+  position: sticky;
+  left: 0;
+  right: 0;
+  text-align: center;
+  padding: 10px;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  z-index: 10;
+  /* 优化动画 */
+  transition: opacity 0.3s ease;
+  /* 启用GPU加速 */
+  transform: translateZ(0);
+}
+
+.top-hint {
+  top: 0;
+}
+
+.bottom-hint {
+  bottom: 0;
+}
+
+/* 优化移动端体验 */
+@media (max-width: 768px) {
+  .category-sidebar {
+    width: 35%;
+  }
+  
+  .category-content {
+    width: 65%;
+  }
+  
+  .category-item {
+    padding: 12px 8px;
+    font-size: 14px;
+  }
+}
