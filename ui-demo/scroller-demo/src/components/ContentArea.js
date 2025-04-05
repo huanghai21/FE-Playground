@@ -5,7 +5,7 @@ import useSwipeCategory from '../hooks/useSwipeCategory';
 function ContentArea({ content, onSwipe }) {
   const contentRef = useRef(null)
   // 使用自定义Hook处理滑动手势
-  const { handleTouchStart, handleTouchMove, handleTouchEnd } = useSwipeCategory(onSwipe, {
+  const { handleTouchStart, handleTouchMove, handleTouchEnd } = useSwipeCategory(contentRef, onSwipe, {
     threshold: 50,  // 触发滑动的最小距离
     preventScroll: true, // 防止页面滚动
     enableVertical: true, // 启用垂直滑动
