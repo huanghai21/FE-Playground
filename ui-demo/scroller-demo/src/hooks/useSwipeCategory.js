@@ -209,6 +209,20 @@ const useSwipeCategory = (ref, onSwipe, options = {}) => {
       const distance = isHorizontal ? Math.abs(diffX) : Math.abs(diffY);
       logSwipe('触摸结束', `触发滑动! 方向: ${direction}, 距离: ${distance}px > 阈值(${threshold}px)`);
 
+      // 在底部向下滑动切换后，将内容区域滚动回顶部
+      if (touchState.edgeType === 'bottom' && direction === 'down') {
+        if (ref.current) {
+          // 使用setTimeout确保在切换后滚动到顶部
+          setTimeout(() => {
+            ref.current.scrollTo({
+              top: 0,
+              behavior: 'smooth'
+            });
+            logSwipe('滚动调整', '内容已滚动回顶部');
+          }, 100);
+        }
+      }
+
       onSwipe(direction);
     } else {
       const swipeType = isHorizontal ? '水平' : '垂直';
