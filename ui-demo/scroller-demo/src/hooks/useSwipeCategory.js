@@ -210,7 +210,7 @@ const useSwipeCategory = (ref, onSwipe, options = {}) => {
       logSwipe('触摸结束', `触发滑动! 方向: ${direction}, 距离: ${distance}px > 阈值(${threshold}px)`);
 
       // 在底部向下滑动切换后，将内容区域滚动回顶部
-      if (touchState.edgeType === 'bottom' && direction === 'down') {
+      if (touchState.edgeType === 'bottom' && direction === 'up') {
         if (ref.current) {
           // 使用setTimeout确保在切换后滚动到顶部
           setTimeout(() => {
